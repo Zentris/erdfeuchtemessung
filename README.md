@@ -15,11 +15,11 @@ Der Fokus liegt dabei auf der Bestimmung des konkreten Bewässerungszeitpunktes 
 Die ermittelte Erdfeuchte kann dann für weitergehende Aufgaben (z.B. Bewässerung) verwendet werden. 
 
 ### Wie soll das gehen? (Konzept)
-* Ein oder mehrere Sensor(en) stecken direkt in der Erde und ermitteln die umgebend Feuchte der Erde.
+* Ein oder mehrere Sensoren stecken direkt in der Erde und ermitteln die umgebende Feuchte der Erde.
 * Die Erfassung und Vorverarbeitung der Feuchtedaten erfolgt mit einem ESP8266 ebenfalls vor Ort.
 * Die Daten werden per lokalem WLAN per REST-Interface zu einem Datenerfassungsrechner gesendet, welcher die Daten in einer MySQL-DB speichert.
-* Die Daten können nun aus der Datenbank beliebig ausgelesen und weiterverabeitet werden.
-* Die Steuerung der Messintervalle im ESP8266 erfolgt über die REST-Schnitstelle. 
+* Die Daten können nun aus der Datenbank beliebig ausgelesen und weiterverarbeitet werden.
+* Die Steuerung der Messintervalle im ESP8266 erfolgt über die REST-Schnittstelle. 
 
 ### Wo kann ich mehr erfahren?
 * Im Wiki zu diesem Projekt sind weitere Informationen abrufbar.

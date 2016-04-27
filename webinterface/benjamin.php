@@ -97,13 +97,13 @@
    }
    echo "         ]);\n";
    echo "      var options0 = {\n";
-   echo "         title: 'Sensor Benjamin (GPIO 2 - " . $c0 . " Datenpunkte)',\n";
+   echo "         title: 'Sensor Benjamin (GPIO 0 - " . $c0 . " Datenpunkte)',\n";
 //   echo "         curveType: 'function',\n";
    echo "         legend: { position: 'top' }\n";
    echo "      };\n";
 
    echo "      var options2 = {\n";
-   echo "         title: 'Sensor Wasserglas (GPIO 0 - " . $c2 . " Datenpunkte)',\n";
+   echo "         title: 'Sensor Wasserglas (GPIO 2 - " . $c2 . " Datenpunkte)',\n";
 //   echo "         curveType: 'function',\n";
    echo "         legend: { position: 'none'}\n";
    echo "      };\n";

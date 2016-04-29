@@ -267,10 +267,9 @@ void saveData2LocalNet(int gpio=0) {
       Serial.println("[HTTP] GET... successfull");
       // file found at server
       String payload = http.getString();
-//      Serial.println(payload);
       getMessabstandFromHttpRequest(payload, "messabstand");
     }
-    else Serial.println("[HTTP] GET... successfull");
+    else Serial.println("[HTTP] GET... errornous!");
   }
 }
 

@@ -1,6 +1,5 @@
 -- MySQL dump 10.13  Distrib 5.6.30, for debian-linux-gnu (x86_64)
 --
--- Host: 192.168.178.14    Database: ESPLogger
 -- ------------------------------------------------------
 -- Server version	5.5.47-0+deb7u1-log
 
@@ -86,4 +85,3 @@ CREATE TABLE `logging` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2016-04-24 17:15:34

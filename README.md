@@ -30,6 +30,7 @@ Die ermittelte Erdfeuchte kann dann für weitergehende Aufgaben (z.B. Bewässeru
 * http://www.forum-raspberrypi.de/Thread-erdfeuchte-bewaesserung
 * https://www.mikrocontroller.net/articles/Giess-o-mat
 * https://www.mikrocontroller.net/topic/169824#1623456
+* https://wwwvs.cs.hs-rm.de/vs-wiki/index.php/Internet_der_Dinge_WS2015/SmartPlant#Messmethode_2:_Kapazitiv
  
 #### Auch interessant:
 * http://www.dietmar-weisser.de/elektronik-projekte/analogtechnik/sensoren/giessindikator.html 

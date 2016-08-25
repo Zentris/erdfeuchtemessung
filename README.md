@@ -35,3 +35,5 @@ Die ermittelte Erdfeuchte kann dann für weitergehende Aufgaben (z.B. Bewässeru
 #### Auch interessant:
 * http://www.dietmar-weisser.de/elektronik-projekte/analogtechnik/sensoren/giessindikator.html 
 
+#### Online Shop(s):
+* http://www.ramser-elektro.at/shop/bausaetze-und-platinen/giess-o-mat-sensor-bausatz/

@@ -9,7 +9,7 @@ Für tiefergreifende Infos ==> **WIKI dieses Repositorys** ansehen.
 #### Warum?
 Das Repo entstand, um die Ideen und Entwicklungen im immer länger werdenden Thread unter http://www.forum-raspberrypi.de/Thread-erdfeuchte-bewaesserung zu diesem Thema besser zu strukturieren.
 
-Ausschlaggebend war die Idee des Giess-o-mat (https://www.mikrocontroller.net/articles/Giess-o-mat), welchen ich anfangs verwendete und bei meinen Messungen diverse Effekte bzgl. der Langszeitstabilität feststellte (was den Giess-o-mat nicht schlecht macht: Die Effekte begannen bei mir mit der Schutzbeschichtung des Sensors...). 
+Ausschlaggebend war die Idee des Giess-o-mat (https://www.mikrocontroller.net/articles/Giess-o-mat), welchen ich anfangs verwendete und bei meinen Messungen diverse Effekte bzgl. der Langzeitstabilität feststellte (was den Giess-o-mat nicht schlecht macht: Die Effekte begannen bei mir mit der Schutzbeschichtung des Sensors...). 
 
 #### Um was geht es?
 Dieses Repository sammelt Ideen und mögliche Realisierungsbeispiele über die Art und Weise, wie man reproduzierbar und dauerhaft die Erdfeuchte bestimmen kann.

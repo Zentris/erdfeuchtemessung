@@ -7,6 +7,11 @@ by Stefan Thesen 05/2015 - free for anyone
 code for ntp adopted from Michael Margolis
 code for time conversion based on http://stackoverflow.com/
 11/2015: repeat ntp requests for up to 10 times
+
+Patch:
+  29.07.16: (RW): epoch type changed to long in functions 
+                  epoch_to_date_time()
+                  epoch_to_string()
 -----------------------------------------------------------*/
 
 // note: all timing relates to 01.01.2000
@@ -49,6 +54,7 @@ unsigned long getNTPTimestamp(IPAddress& ipaddr)
   unsigned long ulSecs2000;
 
   timeServer = ipaddr;
+  
   
   udp.begin(ntpPort);
   int cb, count=0;
@@ -113,7 +119,7 @@ unsigned long sendNTPpacket(IPAddress& address)
 }
 
 
-void epoch_to_date_time(date_time_t* date_time,unsigned int epoch)
+void epoch_to_date_time(date_time_t* date_time,unsigned long epoch)
 {
     date_time->second = epoch%60; epoch /= 60;
     date_time->minute = epoch%60; epoch /= 60;
@@ -140,7 +146,7 @@ void epoch_to_date_time(date_time_t* date_time,unsigned int epoch)
     date_time->day   = epoch-days[year][month]+1;
 }
 
-String epoch_to_string(unsigned int epoch)
+String epoch_to_string(unsigned long epoch)
 {
   date_time_t date_time;
   epoch_to_date_time(&date_time,epoch);

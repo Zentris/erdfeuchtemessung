@@ -1,10 +1,45 @@
 // ------------------------------------
 // Erdfeuchtemessung mit ESP8266-01 / ESP8266-12(e)
-// ---
-/* History:
-  1.0: - [finish] : changing of measurement distance per http request payload
-  1.1: - [finish] : move private data to private.h file 
-       - [todo]   : sleep mode for ESP8266-12(e) device (must be switched on before compile)
+/*
+ Measure soil moisture with ESP8266-01
+ (the source code variables and so on is original writen in german, 
+ a translation will be come later if necessary)
+ 
+ @Autors: 
+       - Ralf Wießner (aka Zentris)
+       - code for ntp adopted from Michael Margolis
+       - code for time_ntp adopted from by Stefan Thesen
+ 
+ @Known_bugs:
+       * important recommentation *
+       - the power supply must be buffered with a 100nF capacitiy near 
+         by the chip (best: between the Vcc and Grd connectors on PCB) 
+         If not, in some cases it can be throw a core dump while 
+         measurement (Interrrupt loop) !
+
+ @Open_issues:
+       - switching time stamp to MESZ and back
+       - watchdog signal (get a blinking LED)
+       - translate variables to english
+       - translate comments to english
+
+ @Feature_and_History:
+   1.0 : 
+       - setting the measurement intervals via HTTP request answer
+       - 2 measurment canals (GPIO0 and GPIO2)
+       - data transfer to local data server 
+       - data transfer to remote Thingsspeak server (optional)
+       - 10 probs on each measurement loop
+       - create median and create the mean value over 5 media values
+       - use a local timeserver (here a fritzbox)
+         (adoption of time_ntp)
+
+   1.1 : 
+       - move private data to private.h file (and add a default dummy: private_dummy.h)
+       - correct a counter bug in time_ntp for precise time calculation 
+       - rename many variable and constants for proper english
+       - use MAC for ESP identifiyer
+       
 */ 
 // ------------------------------------
 

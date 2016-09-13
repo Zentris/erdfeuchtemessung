@@ -66,18 +66,23 @@ struct { int b1 = 129;  int b2 =   6;  int b3 =  15;  int b4 =  28; } ntpIP; // 
 // ---------------------------------------------
 // --- Thingspeak API connection data struct ---
 // ---------------------------------------------
-struct tsData {String tsServer; String tsServerIP; String tsAPIKey; };
+// tsServer   = Thingspeak domain name (normally fix)
+// tsServerIP = Thingspeak server ip (default is a static ip)
+// tsAPIKey   = individual API key for our channel
+// tsFieldNo  = Number of field in our channel where the data will be shown
+//
+struct tsData {String tsServer; String tsServerIP; String tsAPIKey; String tsFieldNo;};
 
 // (remove the comment of following line for activate)
 //#define THINGSPEAK_1
 #ifdef THINGSPEAK_1
-struct tsData thingSpeak_data_1 = { "api.thingspeak.com", "184.106.153.149", "<our API key for the first presentation>" };
+struct tsData thingSpeak_data_1 = { "api.thingspeak.com", "184.106.153.149", "<our API key>", "<our field number>" };
 #endif
 
 // (remove the comment of following line for activate)
 //#define THINGSPEAK_2
 #ifdef THINGSPEAK_2
-struct tsData thingSpeak_data_2 = { "api.thingspeak.com", "184.106.153.149", "<our API key for the second presentation>" };
+struct tsData thingSpeak_data_2 = { "api.thingspeak.com", "184.106.153.149", "<our API key>", "<our field number>" };
 #endif
 
 

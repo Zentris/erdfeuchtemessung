@@ -55,24 +55,20 @@ unsigned long getNTPTimestamp(IPAddress& ipaddr)
 
   timeServer = ipaddr;
   
-  
   udp.begin(ntpPort);
   int cb, count=0;
-  do
-  {
+  do {
     sendNTPpacket(timeServer); // send an NTP packet to a time server
     delay(1000);
     cb = udp.parsePacket();
     count++;
-  }while (!cb || count>10);
+  } while (!cb || count>10);
 
-  if(!cb)
-  {
+  if (!cb)  {
     Serial.println("Timeserver not accessible! - No RTC support!"); 
     ulSecs2000=0;
   }
-  else
-  {
+  else {
     Serial.print("packet received, length=");
     Serial.println(cb);
     udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
@@ -93,7 +89,7 @@ unsigned long getNTPTimestamp(IPAddress& ipaddr)
 
 
 // send an NTP request to the time server at the given address
-unsigned long sendNTPpacket(IPAddress& address)
+void sendNTPpacket(IPAddress& address)
 {
   Serial.println("sending NTP packet...");
   // set all bytes in the buffer to 0
@@ -148,27 +144,11 @@ void epoch_to_date_time(date_time_t* date_time,unsigned long epoch)
 
 String epoch_to_string(unsigned long epoch)
 {
-  date_time_t date_time;
-  epoch_to_date_time(&date_time,epoch);
-  String s;
-  int i;
-  
-  s = date_time.hour; 
-  s+= ":";
-  i=date_time.minute;
-  if (i<10) {s+= "0";}
-  s+= i;
-  s+= ":";
-  i=date_time.second;
-  if (i<10) {s+= "0";}
-  s+= i;
-  s+= " - ";
-  s+= date_time.day;
-  s+= ".";
-  s+= date_time.month;
-  s+= ".";
-  s+= 2000+(int)date_time.year;
-  
-  return(s);
+  date_time_t date;
+  epoch_to_date_time(&date,epoch);
+  char cBuffer[30];
+
+  sprintf(cBuffer,"%04d.%02d.%02d - %02d:%02d:%02d", date.year+2000, date.month, date.day, date.hour, date.minute, date.second);
+  return(String(cBuffer));
 }
 

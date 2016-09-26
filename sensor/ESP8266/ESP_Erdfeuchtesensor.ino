@@ -25,7 +25,7 @@
   @Autors:
     - Ralf Wießner (aka Zentris)
 
-  @Credits:     
+  @Credits:
     - code for ntp adopted from Michael Margolis
     - code for time_ntp adopted from by Stefan Thesen
 
@@ -35,19 +35,21 @@
       by the chip (best: between the Vcc and Grd connectors on PCB)
       If not, in some cases it can be throw a core dump while
       measurement (Interrrupt loop) !
-    * Logserver implementation currently not finished..! Do not switch on!  
+    * Logserver implementation currently not finished..! Do not switch on!
 
   @Open_issues
     - finishing LogServer implementation
     - switching time stamp to MESZ and back
     - watchdog signal (get a blinking LED)
-    - translate variables to english
-    - translate comments to english
+    - translate all variables to english
+    - translate all comments to english
 
   @Releases: Feature
    1.2 :
     - Sensor can be set to go into deep sleep state (ESP8266-12(e) only)
       and waked up after a configurable time (via reset on GPIO-PIN 16)
+    - ask the system for free ram
+    - retry sending to Thingspeak if currently not reachable up to 10 times  
 
    1.1 :
     - move private data to private.h file (and add a default dummy: private_dummy.h)
@@ -70,6 +72,7 @@
 
 #define PRG_NAME_SHORT  "MSM-ESP8266"
 #define PRG_VERSION     "1.2.0"
+
 
 
 /* -------------------------
@@ -111,11 +114,14 @@
 #undef DEBUG
 #endif
 
+#define LED_GPIO 2
 
 /* -------------------------
  * Include section
  * ------------------------- */
+// from: http://arduiniana.org/libraries/streaming/
 #include <Streaming.h>
+
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
@@ -156,11 +162,12 @@ uint8_t MACArray[6];                  // return type of mac request
 String macID;                         // readable mac address
 
 volatile unsigned long counter = 0;   // interrupt loop counter
-unsigned long soilMoistAveraged;  
+unsigned long soilMoistAveraged;
 
 unsigned long ulSecs2000_timer = 0;   // normalised timestamp in sec from 1.1.2000 00:00:00
 date_time_t *date = new date_time_t;  // date structure for output calculation
 
+unsigned long looptimeStart = 0;      // loop timer: start time
 
 /* -------------------------
  *  define/init classes
@@ -176,7 +183,9 @@ IPAddress ipAddrNTPServer(ntpIP.b1, ntpIP.b2, ntpIP.b3, ntpIP.b4);    // local f
  * Get back the current Sketch name and version.
  */
 String getSketchVersion() {
-  return String("\n" + String(F(PRG_NAME_SHORT)) + " - " + String(F(PRG_VERSION)) + " / CompTime:"  + __DATE__ + " - " + __TIME__ + "\n");
+  return String("\n" + String(F(PRG_NAME_SHORT)) + " - " +
+         String(F(PRG_VERSION)) + F(" / CompTime:")  +
+         __DATE__ + F(" - ") + __TIME__ + F("\n"));
 }
 
 /**
@@ -200,6 +209,16 @@ String getTime() {
 }
 
 /**
+ * Convert the given  address array into a printable format
+ * @return: "111.222.333.444" - Format (decimal)
+ */
+const String getCurrentIpAsString(IPAddress aIp) {
+  char s[18];
+  sprintf(s, "%d.%d.%d.%d", aIp[0], aIp[1], aIp[2], aIp[3]);
+  return(String(s));
+}
+
+/**
  * Logging function over web interface
  * Write a log string to log server.
  */
@@ -208,7 +227,7 @@ void writeWebLog(String s) {
   HTTPClient http;
   epoch_to_date_time(date, ulSecs2000_timer + millis()/1000); // fresh up the date structure for current time
   String request= String(logserver.serverScript) + "?espno=" + ESPNO + "&date=" + getDatum() + "&time=" + getTime() + "&logtext=" + s;
-  Serial.println(request);
+  Serial << request << endl;
   http.begin(logserver.serverAdress, logserver.serverPort, request);
   http.GET(); // fire and forget...
 }
@@ -223,8 +242,7 @@ void getDateTimeNTP() {
   epoch_to_date_time(date, ulSecs2000_timer); // fresh up the date structure
   ulSecs2000_timer -= millis()/1000;          // keep distance to millis counter at now
   if (TTY_USE) {
-    Serial << F("Current Time UTC from NTP server: ");
-    Serial.println(epoch_to_string(ulSecs2000_timer).c_str());
+    Serial << F("Current Time UTC from NTP server: ") << epoch_to_string(ulSecs2000_timer) << endl;
   }
   ntpdRefreshTime = ulSecs2000_timer + NTP_REFRESH_AFTER; // setze erneutes Zeitholen
 }
@@ -233,13 +251,12 @@ void getDateTimeNTP() {
  *  Starts the WiFi client and get the current time from a ntp server
  */
 void WiFiStart() {
-    Serial << getSketchVersion();
+  Serial << getSketchVersion();
 
   int connectionAttempts = 0;
-//  while (WiFi.status() != WL_CONNECTED)
   while (WiFiMulti.run() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    Serial << F(".");
     connectionAttempts++;
     if (connectionAttempts > 120) {
       Serial << endl << F("[Warning]: could not connect to WLAN") << endl;
@@ -248,17 +265,17 @@ void WiFiStart() {
       delay(1000);     // only for depricating the next print out.
     }
   }
-  Serial << endl << F("WiFi connected to ") << WiFi.localIP() << endl;
+  Serial << endl << F("WiFi connected, local IP: ") << WiFi.localIP() << endl;
 
 #ifdef LOGSERVER
-  writeWebLog(F("[WiFiStart:010] Wifi connected to " + WiFi.localIP()));
-  writeWebLog(F("[WiFiStart:010] Wifi connected"));
+  String s = "[WiFiStart:010] Wifi connected to ";
+  s += getCurrentIpAsString(WiFi.localIP());
+  writeWebLog(s);
 #endif
 
   // connect to NTP and get time, fill dateTime struct
   if (ulSecs2000_timer + millis()/1000 >= ntpdRefreshTime) {
-    Serial.print(F("... get the current time from NTP Server "));
-    Serial.println(ipAddrNTPServer);
+    Serial << F("... get the current time from NTP Server ") << ipAddrNTPServer << endl;
     getDateTimeNTP();
 
 #ifdef LOGSERVER
@@ -306,9 +323,7 @@ void bodenfeuchtemessung(int gpioPin) {
   unsigned long speicherArray[MEASURING_INTERVALLS];
 
   for (int i=0; i<MEASURING_INTERVALLS; i++) {
-    Serial.print(F("Measuring No.: ")); Serial.print(i);
-    Serial.print(F(" with GPIO-Pin ")); Serial.print(gpioPin);
-    Serial.print(F(" = "));
+    Serial << F("Measuring No.: ") << i << F(" on GPIO-Pin ") << gpioPin << F(" = ");
     counter = 0;
     Serial.flush();
 
@@ -316,7 +331,6 @@ void bodenfeuchtemessung(int gpioPin) {
     Serial.end();
 #endif
 
-    //  attachInterrupt(gpioPin, intfunc, CHANGE);
     attachInterrupt(gpioPin, intfunc, RISING);
     delay(MEASURING_TIME);
     detachInterrupt(gpioPin);
@@ -327,11 +341,11 @@ void bodenfeuchtemessung(int gpioPin) {
     while (!Serial) {};  // wait for serial port to connect. Needed for native USB
 #endif
 
-    Serial.println(counter);
+    Serial << counter << endl;
   }
 
   soilMoistAveraged = median(speicherArray, MEASURING_INTERVALLS);
-  Serial.print(F("average frequence: ")); Serial.println(soilMoistAveraged);
+  Serial << F("average frequence: ") << soilMoistAveraged << endl;
 
 #ifdef LOGSERVER
   writeWebLog("[bodenfeuchtemessung:010] Median=" + String(soilMoistAveraged));
@@ -340,7 +354,7 @@ void bodenfeuchtemessung(int gpioPin) {
 
 /**
  * Get a special token of http get request string for re-setting the
- * mesurement distance time
+ * mesurement distance time in ms
  *
  * Token: @@@measuringDistance=20000;
  */
@@ -387,26 +401,24 @@ void saveData2NetServer(serverData aServer, int gpio=0) {
                    "&mac=" + macID +
                    "&gpio=" + String(gpio);
 
-  Serial.print(F("Try to get http request: "));
-  Serial.println(request);
+  Serial << F("Try to get http request: ") << request << endl;
 
   http.begin(aServer.serverAdress, aServer.serverPort, request);
   int httpCode = http.GET();
   if (httpCode) {
     // HTTP header has been send and Server response header has been handled
-    Serial.print(F("[HTTP] GET... code: "));
-    Serial.println(httpCode);
+    Serial << F("[HTTP] GET... code: ") << httpCode << endl;
 
     if (httpCode == HTTP_CODE_OK) {
-      Serial.println(F("[HTTP] GET... successfull"));
+      Serial << F("[HTTP] GET... successfull") << endl;
       // file found at server
       String payload = http.getString();
 #ifdef DEBUG
-      Serial.println(payload);
+      Serial << payload << endl;
 #endif
       getMeasuringDistanceFromHttpRequest(payload, "measuringDistance");
     }
-    else Serial.println(F("[HTTP] GET... error"));
+    else Serial << F("[HTTP] GET... error") << endl;
   }
 }
 
@@ -414,25 +426,36 @@ void saveData2NetServer(serverData aServer, int gpio=0) {
  * Send data to a valid ThingsSpeak account
 */
 void saveData2ThingsSpeak(tsData aTS) {
-  Serial.println(F("Try to send to ThingsSpeak..."));
-  Serial.print(F("Try to get REST request: "));
+  const int maxSendRepeats = 10;
+  const int waitTimeBetweenSend_ms = 2000; // 2 sec.
+  
   String request= "/update?api_key=" + aTS.tsAPIKey + "&field" + aTS.tsFieldNo + "=" + String(soilMoistAveraged);
-  Serial.println(request);
+  Serial << F("Try to send to ThingsSpeak...") << endl << F("Try to get REST request: ") << request << endl;
 
   HTTPClient http;
-  http.begin(aTS.tsServerIP.c_str(), 80, request);
-  int httpCode = http.GET();
-  if (httpCode) {
-    // HTTP header has been send and Server response header has been handled
-    Serial.print(F("[HTTP] GET... code: "));
-    Serial.println(httpCode);
+  int sendLoop = 0;
+  do {
+    http.begin(aTS.tsServerIP.c_str(), 80, request);
+    int httpCode = http.GET();
+    if (httpCode) {
+      // HTTP header has been send and Server response header has been handled
+      Serial << F("[HTTP] GET... code: ") << httpCode << endl;
 
-    // don't found at server
-    if (httpCode != 200) {
-      Serial.print(F("[HTTP] GET... failed, no connection or no HTTP server\n"));
-      Serial.println(http.getString());
+      // don't found at server
+      if (httpCode != 200) {
+        Serial << F("[HTTP] GET... failed, no connection or no HTTP server\n") << http.getString() << endl;
+      }
+      else { 
+        Serial << F("[HTTP] GET... successfull") << endl;
+        return;
+      }
     }
-    else Serial.println(F("[HTTP] GET... successfull"));
+    sendLoop++;
+    delay(waitTimeBetweenSend_ms);
+  } while ( sendLoop < maxSendRepeats);
+
+  if (sendLoop >= maxSendRepeats) {
+    Serial << F("Can't sent datagram to Thingspeak server, not reachable.") << endl;
   }
 }
 
@@ -441,34 +464,43 @@ void saveData2ThingsSpeak(tsData aTS) {
  *  S E T U P
  * ------------------------------------ */
 void setup() {
+#ifdef DEEP_SLEEP_ON
+  looptimeStart = millis();
+#endif
+
   Serial.begin(TTY_SPEED);
   while (!Serial) {};  // wait for serial port to connect. Needed for native USB
   delay(100);          // wait for synchronising
   Serial << getSketchVersion();
 
-// @todo: print out the current version to the web log
-
-//  WiFi.begin(ssid, password);
-  WiFiMulti.addAP(ccSSID, ccPASSWORD);
-  WiFi.macAddress(MACArray);
+  // set multiple access points for better mobility
+  for (unsigned int i=0; i < sizeof(apList)/sizeof(struct accessPoint); i++) {
+    Serial << F("add AP(") << i << F(") : ") << apList[i].SSID << endl;
+    WiFiMulti.addAP(apList[i].SSID, apList[i].PASSWORD);
+  };
 
   // get the mac address for identifying of the node.
+  WiFi.macAddress(MACArray);
   macID = String(MACArray[0], HEX) + String(MACArray[1], HEX) +
           String(MACArray[2], HEX) + String(MACArray[3], HEX);
   macID.toUpperCase();
-  Serial << macID << endl;
+  Serial << F("MAC :") << macID << endl;
+  Serial << F("Chip:") << ESP.getChipId() << endl;
 
-//  system_deep_sleep_set_option(0);   // @todo: currently unsecure
+  uint32_t free=system_get_free_heap_size();
+  Serial << F("free heap:") << free << F(" byte") << endl;
 }
 
 /* ------------------------------------
  *  M A I N - L O O P
  * ------------------------------------ */
 void loop() {
-  unsigned long looptimeStart = millis();
+#ifndef DEEP_SLEEP_ON
+  looptimeStart = millis();
+#endif
 
   WiFiStart();
-  Serial << endl << F("--START-MESSUNG--") << endl;
+  Serial << endl << F("---BEGIN MEASURENT---") << endl;
 
 #ifdef INTPIN_0
   bodenfeuchtemessung(INTPIN_0);
@@ -498,16 +530,16 @@ void loop() {
 
   unsigned long looptimeEnde = millis();
   unsigned long looptime = looptimeEnde - looptimeStart;
-  
+
   if (looptime > measuringDistance) {
     Serial << F("[Warning]: loop time bigger than measuring distance time!") << endl;
     Serial << F("   ==> redefine measuring distance time to 10 * default") << endl;
     Serial << F("   ==> new measuring distance time is ") << String(10*MEASURING_DISTANCE_DEFAULT/1000) << F(" sec. from now") << endl;
-    measuringDistance = 10 * MEASURING_DISTANCE_DEFAULT; 
+    measuringDistance = 10 * MEASURING_DISTANCE_DEFAULT;
   }
-  
+
   epoch_to_date_time(date, ulSecs2000_timer + (millis() + measuringDistance - looptime)/1000); // fresh up the date structure for current time
-  
+
   Serial << F("measuringDistance (def) = ") << measuringDistance << endl;
   Serial << F("looptime                = ") << looptime << endl;
   Serial << F("measuringDistance (new) = ") << measuringDistance - looptime << endl << endl;
@@ -516,13 +548,11 @@ void loop() {
 #ifdef DEEP_SLEEP_ON
   Serial << F("Going into deep sleep for around ") << ((measuringDistance-looptime)/1000) << F(" sec") << endl;
 
-
 // mode is one of `WAKE_RF_DEFAULT`, `WAKE_RFCAL`, `WAKE_NO_RFCAL`, `WAKE_RF_DISABLED`
   ESP.deepSleep((measuringDistance - looptime)*1000, WAKE_RF_DEFAULT);   // need usec!
 
 //  ESP.deepSleep(10*1000000);
 //  system_deep_sleep((measuringDistance - looptime)*1000); // use us !
-
 #else
   Serial << F("Wait now....") << endl;
   delay(measuringDistance - looptime);

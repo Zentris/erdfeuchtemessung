@@ -17,11 +17,22 @@
 
   + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + */
 
-// ---------------------------------------------
-// --- Wifi- access data
-// ---------------------------------------------
-const char* ccSSID          = "<***>";
-const char* ccPASSWORD      = "<***>";
+/* ---------------------------------------------
+   --- Wifi- access data
+   ---------------------------------------------
+   It can defined more than one (unlimited!) access point for better mobility:
+   
+   Example:
+   struct accessPoint apList[] = { (accessPoint) { "fritzbox",  "1234567890" }, 
+                                   (accessPoint) { "bluelan",   "myHomeIsMyCastle" } 
+                                   (accessPoint) { "firepoint", "hotIceWater" } 
+                                 };
+*/ 
+struct accessPoint {const char* SSID; const char* PASSWORD;};
+struct accessPoint apList[] = { (accessPoint) {"<your first AP name>",  "<pw of your first AP>"} 
+                               ,(accessPoint) {"<your second AP name>", "<pw of your second AP>"} 
+//                             ,(accessPoint) {"<your next AP name>",   "<pw of your next AP>"} 
+                              };
 
 // ---------------------------------------------
 // --- data server struct ---

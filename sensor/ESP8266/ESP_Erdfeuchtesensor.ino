@@ -304,10 +304,12 @@ unsigned long median(unsigned long *values, int arraySize) {
       }
     }
   }
-  
+
+#ifdef DEBUG
   for (size_t x=0; x<arraySize; x++) {
     Serial << F("sorted array[") << x << F("] = ") << values[x] << endl;
   }
+#endif  
   
   tmp = 0;
   for (size_t i=arraySize/2-relVal; i<arraySize/2+relVal+1; tmp +=values[i++]) {}

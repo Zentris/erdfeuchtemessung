@@ -49,7 +49,7 @@
     - Sensor can be set to go into deep sleep state (ESP8266-12(e) only)
       and waked up after a configurable time (via reset on GPIO-PIN 16)
     - ask the system for free ram
-    - retry sending to Thingspeak if currently not reachable up to 10 times  
+    - retry sending to Thingspeak if currently not reachable up to 10 times
 
    1.1 :
     - move private data to private.h file (and add a default dummy: private_dummy.h)
@@ -72,7 +72,6 @@
 
 #define PRG_NAME_SHORT  "MSM-ESP8266"
 #define PRG_VERSION     "1.2.0"
-
 
 
 /* -------------------------
@@ -145,7 +144,7 @@ extern "C" {
 #define MEASURING_TIME                  1000
 #define NTP_REFRESH_AFTER          3600*1000
 
-#define MEASURING_INTERVALLS              10
+#define MEASURING_INTERVALLS              9
 
 // default HTTP requestcodes for "ok"
 #define HTTP_CODE_OK 200
@@ -293,19 +292,25 @@ void WiFiStart() {
  * Getting array will be sorted and now get the average over the middle values
  */
 unsigned long median(unsigned long *values, int arraySize) {
-  unsigned long tmp = 0;            // set to 0, make the compiler happy :-)
-  const unsigned long relVal = 2;   // +- 2 Werte + 1 für die Mittelwertberechnung
+  unsigned long tmp = 0;     // set to 0, make the compiler happy :-)
+  const size_t relVal = 2;   // +- 2 Werte + 1 für die Mittelwertberechnung
 
-  for (int i=0; i<arraySize; i++) {
-    for (int j=arraySize-1; j>i; j--) {
-      if( values[j] < values[j - 1] ) {
+  for (size_t i=0; i<arraySize-2; i++) {
+    for (size_t j=arraySize-1; j>i; j--) {
+      if ( values[j] < values[j - 1] ) {
         tmp = values[j];
         values[j] = values[j - 1];
         values[j - 1] = tmp;
       }
     }
   }
-  for (unsigned long i=arraySize/2-relVal; i<arraySize/2+relVal; tmp +=values[i++]) {}
+  
+  for (size_t x=0; x<arraySize; x++) {
+    Serial << F("sorted array[") << x << F("] = ") << values[x] << endl;
+  }
+  
+  tmp = 0;
+  for (size_t i=arraySize/2-relVal; i<arraySize/2+relVal+1; tmp +=values[i++]) {}
   return tmp/(relVal*2+1);
 }
 
@@ -322,7 +327,7 @@ void intfunc() {
 void bodenfeuchtemessung(int gpioPin) {
   unsigned long speicherArray[MEASURING_INTERVALLS];
 
-  for (int i=0; i<MEASURING_INTERVALLS; i++) {
+  for (size_t i=0; i<MEASURING_INTERVALLS; i++) {
     Serial << F("Measuring No.: ") << i << F(" on GPIO-Pin ") << gpioPin << F(" = ");
     counter = 0;
     Serial.flush();
@@ -428,7 +433,7 @@ void saveData2NetServer(serverData aServer, int gpio=0) {
 void saveData2ThingsSpeak(tsData aTS) {
   const int maxSendRepeats = 10;
   const int waitTimeBetweenSend_ms = 2000; // 2 sec.
-  
+
   String request= "/update?api_key=" + aTS.tsAPIKey + "&field" + aTS.tsFieldNo + "=" + String(soilMoistAveraged);
   Serial << F("Try to send to ThingsSpeak...") << endl << F("Try to get REST request: ") << request << endl;
 
@@ -445,7 +450,7 @@ void saveData2ThingsSpeak(tsData aTS) {
       if (httpCode != 200) {
         Serial << F("[HTTP] GET... failed, no connection or no HTTP server\n") << http.getString() << endl;
       }
-      else { 
+      else {
         Serial << F("[HTTP] GET... successfull") << endl;
         return;
       }
@@ -500,7 +505,7 @@ void loop() {
 #endif
 
   WiFiStart();
-  Serial << endl << F("---BEGIN MEASURENT---") << endl;
+  Serial << endl << F("---BEGIN MEASURMENT---") << endl;
 
 #ifdef INTPIN_0
   bodenfeuchtemessung(INTPIN_0);

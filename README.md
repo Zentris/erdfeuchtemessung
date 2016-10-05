@@ -25,6 +25,9 @@ Die ermittelte Erdfeuchte kann dann für weitergehende Aufgaben (z.B. Bewässeru
 * Die Steuerung der Messintervalle im ESP8266 erfolgt über die REST-Schnittstelle. 
 * Das Konzept mit einem ESP8266 erlaubt weitere Sensoren in Pflanzennähe (z.B. Luft/Bodentemperatur, Sonnenscheindauer und -intensität usw.).
 
+#### Mein Blog
+* http://www.n8chteule.de/zentris-blog/
+
 #### Wo kann ich mehr erfahren?
 * Im Wiki (https://github.com/Zentris/erdfeuchtemessung/wiki) zu diesem Projekt sind weitere Informationen abrufbar.
 * http://www.forum-raspberrypi.de/Thread-erdfeuchte-bewaesserung

@@ -14,8 +14,9 @@
    $dbname              = "ESPLogger";
    $tableName           = "ESP_Feuchte";
 
-   $ESP_MAC  = "0";		// wird aus der db geholt und später gesetzt
-   $ESP_ID   = "1";		// default die 1			
+   $ESPMAC = '18FE34D6';
+
+   $ESP_ID   = "1";		// default die 1
    $ESP_GPIO = "0";		// default GPIO 0
 
    define("LastDSAnzahl_default",   "60");
@@ -25,7 +26,7 @@
    define("autoRefreshTimeDefault", "30");
 
    $autorefrsh = autorefreshOnDefault;
-   
+
    if (isset($_GET["checkboxes"])) {
 	  if ($_GET["checkboxes"] == "autorefreshOn") {
 		 $autorefrsh = 1;
@@ -44,10 +45,10 @@
 	   $anzahlDatenpunkte = $_GET["LastDSAnzahl"];
    }
    else $anzahlDatenpunkte = LastDSAnzahl_default;
-   
+
    $ESP_GPIO="0"; // default
    if (isset($_GET["gpio"])) {
-		if (($_GET["gpio"] == "0") or ($_GET["gpio"] == "2")) { 
+		if (($_GET["gpio"] == "0") or ($_GET["gpio"] == "2")) {
 			$ESP_GPIO = $_GET["gpio"];
 		}
 	}
@@ -56,23 +57,17 @@
    $link = mysql_connect($dbhost, $dbuser, $dbpw) or die("Keine Verbindung möglich: " . mysql_error());
    mysql_select_db($dbname) or die("Auswahl der Datenbank $dbname fehlgeschlagen");
 
-   // Mac aus den Messdaten holen
-   $query = "select id, espmac from $tableName where $tableName.espno = $ESP_ID order by id desc limit 1";
-   $result = mysql_query($query) or die("1. Anfrage fehlgeschlagen: " . mysql_error());   
-   $line = mysql_fetch_array($result);
-   $ESP_MAC = $line[1];	
-   
    // Datenabfrage 1. Set
-   $query = "select SQL_CACHE id, date, time, feuchte from 
-		(select * from $tableName where $tableName.espno = $ESP_ID and $tableName.gpio = '0' order by id desc limit " . $anzahlDatenpunkte . ")
+   $query = "select SQL_CACHE id, date, time, feuchte from
+		(select * from $tableName where $tableName.espmac = '$ESPMAC' and $tableName.gpio = '5' order by id desc limit " . $anzahlDatenpunkte . ")
 		 as sub order by date, time asc";
    $result0 = mysql_query($query) or die("1. Anfrage fehlgeschlagen: " . mysql_error());
 
    // Datenabfrage 2. Set
-   $query = "select SQL_CACHE id, date, time, feuchte from 
-		(select * from $tableName where $tableName.espno = $ESP_ID and $tableName.gpio = '2' order by id desc limit " . $anzahlDatenpunkte . ")
+   $query = "select SQL_CACHE id, date, time, feuchte from
+		(select * from $tableName where $tableName.espmac = '$ESPMAC' and $tableName.gpio = '12' order by id desc limit " . $anzahlDatenpunkte . ")
 		 as sub order by date, time asc";
-   $result2 = mysql_query($query) or die("1. Anfrage fehlgeschlagen: " . mysql_error());
+   $result2 = mysql_query($query) or die("2. Anfrage fehlgeschlagen: " . mysql_error());
 
    // Ausgabe der Ergebnisse
    echo "<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>\n";
@@ -97,13 +92,13 @@
    }
    echo "         ]);\n";
    echo "      var options0 = {\n";
-   echo "         title: 'Sensor Benjamin (GPIO 0 - " . $c0 . " Datenpunkte)',\n";
+   echo "         title: 'Sensor im Philo (ESP8266-12e, Giess-o-mat, Kontakt 70, GPIO 5 - " . $c0 . " Datenpunkte)',\n";
 //   echo "         curveType: 'function',\n";
    echo "         legend: { position: 'top' }\n";
    echo "      };\n";
 
    echo "      var options2 = {\n";
-   echo "         title: 'Sensor Wasserglas (GPIO 2 - " . $c2 . " Datenpunkte)',\n";
+   echo "         title: 'Sensor im Benjamin (ESP8266-12e, Dipol-Sensor, GPIO 12 - " . $c2 . " Datenpunkte)',\n";
 //   echo "         curveType: 'function',\n";
    echo "         legend: { position: 'none'}\n";
    echo "      };\n";
@@ -115,15 +110,16 @@
    echo "   }\n";
    echo "</script>\n";
 
-   mysql_free_result($result);   // Freigeben des Resultsets
+   mysql_free_result($result0);   // Freigeben des Resultsets
+   mysql_free_result($result2);   // Freigeben des Resultsets
    mysql_close($link);           // Schließen der Verbinung
 ?>
 
 </head>
 <body>
-   <h3>ESP-1 Erdfeuchtefühler (id=<?php echo $ESP_ID ?> , MAC=<?php echo $ESP_MAC ?>, Anzahl Messpunkte = <?php echo $anzahlDatenpunkte ?>) </h3>
-   <div id="curve_chart0" style="width: 110%; height: 400px; position: relative; top: 0px; left: 0px;"></div>
-   <div id="curve_chart2" style="width: 110%; height: 400px; position: relative; top: 0px; left: 0px;"></div>
+   <h3>Benjamin Erdfeuchtefühler (Anzahl Messpunkte = <?php echo $anzahlDatenpunkte ?>) </h3>
+   <div id="curve_chart0" style="width: 100%; height: 400px; position: relative; top: 0px; left: 0px;"></div>
+   <div id="curve_chart2" style="width: 100%; height: 400px; position: relative; top: 0px; left: 0px;"></div>
 
 <form action="<?php echo $_SERVER["PHP_SELF"];?>" method="get">
 <table border="0">
@@ -133,16 +129,6 @@
 		value="<?php if(isset($_GET['autoRefreshTime'])){echo $_GET['autoRefreshTime'];}else{echo autoRefreshTimeDefault;}?>"/> (sec)</th>
 	<th><input type="checkbox" name="checkboxes" size="10" maxlength="10" value="autorefreshOn" <?php if ($autorefrsh) echo "checked"; ?>/> </th>
   </tr>
-<!--  
-  <tr>
-	<th style="text-align:right">GPIO-Selektion:</th>
-	<th><select name="gpio" size="1">
-			<option value="0" <?php if ($ESP_GPIO=="0") echo "selected" ?> >GPIO-0 (steckt im Benny)</option>
-			<option value="2" <?php if ($ESP_GPIO=="2") echo "selected" ?> >GPIO-2 (Silikonvergossen)</option>
-		</select>
-	</th>
-  </tr>
--->
   <tr>
 	<th style="text-align:right">Anzahl der letzten Datensätze:</th>
 	<th><select name="LastDSAnzahl" size="1" width=200>
@@ -152,6 +138,7 @@
 			<option value="90"  <?php if ($anzahlDatenpunkte=="90")     echo "selected" ?> >90 Werte (3h)</option>
 			<option value="180" <?php if ($anzahlDatenpunkte=="180")    echo "selected" ?> >180 Werte (6h)</option>
 			<option value="360" <?php if ($anzahlDatenpunkte=="360")    echo "selected" ?> >360 Werte (12h)</option>
+			<option value="540" <?php if ($anzahlDatenpunkte=="540")    echo "selected" ?> >540 Werte (18h)</option>
 			<option value="720" <?php if ($anzahlDatenpunkte=="720")    echo "selected" ?> >720 Werte (24h)</option>
                         <option value="1440"<?php if ($anzahlDatenpunkte=="1440")   echo "selected" ?> >1440 Werte (48h)</option>
 			<option value="2160"<?php if ($anzahlDatenpunkte=="2160")   echo "selected" ?> >2160 Werte (3 Tage)</option>

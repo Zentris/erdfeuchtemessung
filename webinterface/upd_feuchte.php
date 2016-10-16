@@ -20,7 +20,8 @@ $parm2rowMap = array (
                  "luftfeuchte" => "luftfeuchte",
                  "nan"         => "nan",
                  "mac"         => "espmac",
-                 "gpio"        => "gpio"
+                 "gpio"        => "gpio",
+                 "sensorid"    => "sensorid"
                );
 
 # -------------------------------------------
@@ -50,7 +51,8 @@ foreach ($_REQUEST as $k => $p) {
 
 
 ## - parameter check, return html return value 404 and exit with -1
-if ( array_key_exists("espno", $rowMapData) && $rowMapData["espno"] != "" &&
+if ( array_key_exists("espmac", $rowMapData) && $rowMapData["espmac"] != "" &&
+     array_key_exists("sensorid", $rowMapData) && $rowMapData["sensorid"] != "" &&
      array_key_exists("date", $rowMapData) && $rowMapData["date"] != "" ) {
   if ( $debug == 1) { echo "ok <br />"; }
 }
@@ -76,7 +78,7 @@ $sql .= ") " . $values . ")";
 
 echo "sql='$sql'<br />";
 
-echo "*[ACTION]* : DB will be conected" . "<br />";
+echo "\n*[ACTION]* : DB will be conected" . "<br />";
 $mysqli = new mysqli($dbhost, $dbuser, $dbpw, $dbname);
 if ($mysqli->connect_errno) {
     echo "Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error;

@@ -28,51 +28,23 @@
                                    (accessPoint) { "firepoint", "hotIceWater" } 
                                  };
 */ 
-struct accessPoint {const char* SSID; const char* PASSWORD;};
 struct accessPoint apList[] = { (accessPoint) {"<your first AP name>",  "<pw of your first AP>"} 
                                ,(accessPoint) {"<your second AP name>", "<pw of your second AP>"} 
 //                             ,(accessPoint) {"<your next AP name>",   "<pw of your next AP>"} 
                               };
 
+
 // ---------------------------------------------
 // --- data server struct ---
 // ---------------------------------------------
-struct serverData {const char* serverAdress; const int serverPort; const char* serverScript; };
-// ---------------------------------------------
-// --- first data server (if needed) ---
-// ---------------------------------------------
-// (remove the comment of following line for activate)
-//
 // Example: struct serverData dataServer_1 = { "192.168.1.14", 80, "/homecontrol/upd_feuchte.php" };
-//          struct serverData dataServer_2 = { "soil.moisture.net", 80, "/upd_feuchte.php" };
+//          struct serverData dataServer_2 = { "soil.moisture.net", 8080, "/upd_feuchte.php" };
 //
-//#define SERVER_1
-#ifdef SERVER_1
-struct serverData dataServer_1 = { "<IP of data server 1>", <port>, "<server script>" };
-#endif
+struct serverData dataServer[] = { (serverData) {"<1. Server_ip-or_hostname>", <port>, "<server script with path>"}
+                                  ,(serverData) {"<2. Server_ip-or_hostname>", <port>, "<server script with path>"}
+//                                ... 
+                                 };
 
-// ---------------------------------------------
-// --- second data server (if needed) ---
-// ---------------------------------------------
-// (remove the comment of following line for activate)
-//#define SERVER_2
-#ifdef SERVER_2
-struct serverData dataServer_2 = { "<IP of data server 2>", <port>, "<server script>" };
-#endif
-
-// ---------------------------------------------
-// --- Logserver (if needed) ---
-// ---------------------------------------------
-// (remove the comment of following line for activate)
-//#define LOGSERVER
-#ifdef LOGSERVER
-struct serverData logserver = { "<IP of log server>", <port>, "<server script>" };
-#endif
-
-// ---------------------------------------------
-// --- NTP server ip (b1.b2.b3.b4)
-// ---------------------------------------------
-struct { int b1 = 129;  int b2 =   6;  int b3 =  15;  int b4 =  28; } ntpIP; // time.nist.gov NTP server
 
 // ---------------------------------------------
 // --- Thingspeak API connection data struct ---
@@ -81,21 +53,19 @@ struct { int b1 = 129;  int b2 =   6;  int b3 =  15;  int b4 =  28; } ntpIP; // 
 // tsServerIP = Thingspeak server ip (default is a static ip)
 // tsAPIKey   = individual API key for our channel
 // tsFieldNo  = Number of field in our channel where the data will be shown
-//
-struct tsData {String tsServer; String tsServerIP; String tsAPIKey; String tsFieldNo;};
+// ---------------------------------------------
+struct tsData thingSpeakServer[] = { (tsData) {"api.thingspeak.com", "184.106.153.149", "<our API key>", "<our 1. field number>"}
+                                    ,(tsData) {"api.thingspeak.com", "184.106.153.149", "<our API key>", "<our 2. field number>"}
+//                                  ...                                    
+                                   };
 
+
+// ---------------------------------------------
+// --- Logserver (if needed) ---
+// ---------------------------------------------
 // (remove the comment of following line for activate)
-//#define THINGSPEAK_1
-#ifdef THINGSPEAK_1
-struct tsData thingSpeak_data_1 = { "api.thingspeak.com", "184.106.153.149", "<our API key>", "<our field number>" };
+#ifdef LOGSERVER
+struct serverData logserver = { "<IP of log server>", <port>, "<server script>" };
 #endif
-
-// (remove the comment of following line for activate)
-//#define THINGSPEAK_2
-#ifdef THINGSPEAK_2
-struct tsData thingSpeak_data_2 = { "api.thingspeak.com", "184.106.153.149", "<our API key>", "<our field number>" };
-#endif
-
-
 
 #endif

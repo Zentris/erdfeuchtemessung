@@ -26,8 +26,8 @@
     - Ralf Wießner (aka Zentris)
 
   @Credits:
-    - code for ntp adopted from Michael Margolis
-    - code for time_ntp adopted from by Stefan Thesen
+    - ntp adopted from Michael Margolis
+    - time_ntp adopted from by Stefan Thesen
 
   @Known_bugs
     * important recommentation *
@@ -38,13 +38,28 @@
     * Logserver implementation currently not finished..! Do not switch on!
 
   @Open_issues
-    - finishing LogServer implementation
+    - finishing LogServer implementation and testing
     - switching time stamp to MESZ and back
-    - watchdog signal (get a blinking LED)
     - translate all variables to english
     - translate all comments to english
 
   @Releases: Feature
+   2.0.0 : 
+    - ESPNO define removed, the MAC and sensorID will be used instead
+      - this will be necessary changes into 
+        * the database (add sensorid field and change indices)
+        * the upd_feuchte.php file (REST IF)
+        * the benjamin.php file (sql queries)
+    - watchdog signal (Onboard-LED on GPIO 2) will be used for signaling 
+      the measurement loop
+    - changed privats.h format (only structures now, more simplify)
+    - Sensor will be switched off to powerless state if no measurement
+      ongoing. This feature is only tested with the ESP8266-12, it cut be 
+      possible to work also with the ESP8266-01 (currently not tested)
+    - Support of 2 ore more (depends of free GPIO pins on our ESP: 
+      * each sensor needs 2 GPIO: frequencey counter and power line
+    - small correction into the median calculation
+   
    1.2 :
     - Sensor can be set to go into deep sleep state (ESP8266-12(e) only)
       and waked up after a configurable time (via reset on GPIO-PIN 16)
@@ -67,59 +82,26 @@
     - use a local timeserver (here a fritzbox)
       (adoption of time_ntp)
 
+  @My Arduino V.1.6.10 programmer settings
+  * Board: ESPino (ESP-12 Module)
+  * Flash-Mode: DIO
+  * CPU-Frequency: 80MHz 
+  * Flash-Size: 4M (1M SPIFFS)
+  * Reset Methos: ck
+  * Upload-Speed: 115200 (recommented)
+  * Programmer: AVRISP mkII (for my PL2303 USB2Serial Adapter) 
+
  */
 // ------------------------------------
 
 #define PRG_NAME_SHORT  "MSM-ESP8266"
-#define PRG_VERSION     "1.2.0"
-
-
-/* -------------------------
- * Configuration section
- * ------------------------- */
-
-#define RELEASE         // switch on release mode..
-#define DEBUG            // debug mode on/off
-
-#define DEEP_SLEEP_ON    // for using the deep sleep mode pls look into the README.md
-
-//#define LOGSERVER      // uncomment for using the logserver (currently unfinished!)
-
-//#define SERIAL_OUT_ON_MEASURING   // special feature: (test phase!)
-                                  // switch out the serial interface
-                                  // for measure time:
-                                  // it will be increase precision
-
-#define TTY_USE 1        // Switch on/off output of TTY (off = 0)
-#define TTY_SPEED 57600  // Serial speed
-
-// - - - - - - - - - - - - -
-// use input of following GPIOs (pls read befor set!)
-// - - - - - - - - - - - - -
-// :: GPIO 0 and GPIO 2 usable on ESP8266-01
-// :: GPIO 2 _not_ (!!) usable on ESP8266-12(e)
-// ::-> if use the GPIO_2 with ESP8266-12(e), the deep-sleep mode
-// ::-> does't work and the sketch will break with a core dump!
-
-//#define INTPIN_0 0     // uncomment if using
-#define INTPIN_2 5       // uncomment if using
-
-#define ESPNO 1          // single ESP Number (deprecated (!) )
-
-/* === End of Configuration section === */
-
-
-#ifdef RELEASE
-#undef DEBUG
-#endif
-
-#define LED_GPIO 2
+#define PRG_VERSION     "2.0.0"
 
 /* -------------------------
- * Include section
+ * First include section
  * ------------------------- */
-// from: http://arduiniana.org/libraries/streaming/
-#include <Streaming.h>
+
+#include <Streaming.h>      // from: http://arduiniana.org/libraries/streaming/
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
@@ -132,36 +114,150 @@ extern "C" {
 }
 
 #include "time_ntp.h"
-#include "privats.h"
+
+
+/* -------------------------
+ * Configuration section
+ * ------------------------- */
+#define ESP8266_12       // recomment if your target device a ESP8266-12
+//#define ESP8266_01       // recomment if your target device a ESP8266-01
+
+#define RELEASE          // switch on release mode.. (no debug mode, small foortprint)
+#define DEBUG            // debug mode on/off
+
+#ifdef RELEASE           // RELEASE deactivates the DEBUG mode!
+#undef DEBUG
+#endif
+
+#define DEEP_SLEEP_ON    // for using the deep sleep mode pls look into the README.md
+
+//#define LOGSERVER       // uncomment for using the logserver (currently untested!)
+
+//#define SERIAL_OUT_ON_MEASURING   // special feature: (test phase!)
+                         // switch out the serial interface
+                         // for measure time:
+                         // it will be increase precision
+
+#define TTY_USE 1        // Switch on/off output of TTY (off = 0)
+#define TTY_SPEED 57600  // Serial speed
+
+#define LED_GPIO 2       // internal LED ! (blue)
+
+
+#define MEASURING_DISTANCE_DEFAULT  300*1000  // all times in milliSec
+#define MEASURING_TIME                   100  // how long a sample lasts
+
+
+#define NTP_REFRESH_AFTER          3600*1000  // after what time the ntp 
+                                              // timestamp will be refreshed
+                                              // (only continous mode)
+
+#define MEASURING_INTERVALLS              9   // how many samples are taken?
+
+// - - - - - - - - - - - - -
+// use input of following GPIOs (pls read befor set!)
+// - - - - - - - - - - - - -
+// :: GPIO 0 and GPIO 2 usable on ESP8266-01
+// :: GPIO 2 _not_ (!!) usable on ESP8266-12(e)
+// ::-> if use the GPIO_2 with ESP8266-12(e), the deep-sleep mode
+// ::-> does't work and the sketch will break with a core dump!
+
+//#define ESPNO 1          // single ESP Number (deprecated (!) )
+
+
+/* ---------------------------------------------
+   --- Sensor definition data ---
+   ---------------------------------------------
+   :: (?) Sensor data 
+   sensorId          = the sensor id and at the same time the field number
+                       in your Thingspeak account
+   intGPIO           = the measurement GPIO where the frequecy will be determine
+   powerGPIO         = the power pin where the sensor switched on or off (not for ESP8266-01!)
+   soilMoistAveraged = the current soil moist value after measurement
+*/
+struct mySensor {unsigned int sensorId; unsigned int intGPIO; unsigned int powerGPIO; unsigned long soilMoistAveraged;};
+
+// my sensor GPIO definition (must be adapt on your own hardeware configuration !
+struct mySensor sensors[] { (mySensor) { 2,  5,  4, 0 } 
+                           ,(mySensor) { 1, 12, 14, 0 } 
+                          };
+
+/* ---------------------------------------------
+   --- NTP server ip ---
+   ---------------------------------------------
+*/
+struct { int b1 = 192;  int b2 = 168;  int b3 = 178;  int b4 =  1; } ntpIP; // Fritzbox
+//struct { int b1 = 129;  int b2 =   6;  int b3 =  15;  int b4 =  28; } ntpIP; // time.nist.gov NTP server
+
+
+/* === End of Configuration section === */
+
+
+/* -------------------------
+ * Structure definition section for using in privats.h
+ * ------------------------- */
+
+/* ---------------------------------------------
+   --- Wifi- access data ---
+   ---------------------------------------------
+   :: (?) It can be stored more than one WiFi connection - the device check 
+          for availability and connect to the first was found
+   :: (!) This structure should be defined into the privats.h file!
+   SSID      = the WiFi SSID name to connect
+   PASSWORD  = the WiFi identification password
+*/
+struct accessPoint {const char* SSID; const char* PASSWORD;};
+
+/* ---------------------------------------------
+   --- Data server ---
+   ---------------------------------------------
+   :: (?) Server to receive measurement data via primitive REST 
+          interface implementation
+   :: (!) This structure should be defined into the privats.h file!
+   serverAdress  = server IP or Server name without port
+   serverPort    = specified port number of the server where the service
+                   will be offered
+   serverScript  = server script path/script-name are be called 
+*/
+struct serverData {const char* serverAdress; const int serverPort; const char* serverScript; };
+
+/* ---------------------------------------------
+   --- Thingspeak API connection data ---
+   ---------------------------------------------
+   :: (?) Connection data for a Thingspeak account to sent the measurement
+          data to one or more data representation fields
+   :: (!) This structure should be defined into the privats.h file!
+   tsServer   = Thingspeak domain name
+   tsServerIP = Thingspeak server ip
+   tsAPIKey   = individual API key for our channel
+   tsFieldNo  = number of field in our channel where the data will be shown
+                The field number refereced with the sensorId number from 
+                the Sensor definition data structure (!)
+                It means, the number sensorId number is the field number 
+                off Thingspeak fields.
+*/
+struct tsData {String tsServer; String tsServerIP; String tsAPIKey; unsigned int tsFieldNo;};
 
 
 /* -------------------------
  * Declaration section
  * ------------------------- */
+#include "privats.h"
 
-// Time in milliSec
-#define MEASURING_DISTANCE_DEFAULT  120*1000
-#define MEASURING_TIME                  1000
-#define NTP_REFRESH_AFTER          3600*1000
-
-#define MEASURING_INTERVALLS              9
-
-// default HTTP requestcodes for "ok"
-#define HTTP_CODE_OK 200
+#define HTTP_CODE_OK 200    // default HTTP requestcodes for "ok"
 
 
 /* -------------------------
  * Global variables
  * ------------------------- */
 
-unsigned long measuringDistance = MEASURING_DISTANCE_DEFAULT;           // default = 30sec
+unsigned long measuringDistance = MEASURING_DISTANCE_DEFAULT;           // default = 300sec
 unsigned long ntpdRefreshTime = 0;    // time if the get the ntp time re-read
 
 uint8_t MACArray[6];                  // return type of mac request
 String macID;                         // readable mac address
 
 volatile unsigned long counter = 0;   // interrupt loop counter
-unsigned long soilMoistAveraged;
 
 unsigned long ulSecs2000_timer = 0;   // normalised timestamp in sec from 1.1.2000 00:00:00
 date_time_t *date = new date_time_t;  // date structure for output calculation
@@ -225,7 +321,7 @@ const String getCurrentIpAsString(IPAddress aIp) {
 void writeWebLog(String s) {
   HTTPClient http;
   epoch_to_date_time(date, ulSecs2000_timer + millis()/1000); // fresh up the date structure for current time
-  String request= String(logserver.serverScript) + "?espno=" + ESPNO + "&date=" + getDatum() + "&time=" + getTime() + "&logtext=" + s;
+  String request= String(logserver.serverScript) + "?mac=" + macID + "&date=" + getDatum() + "&time=" + getTime() + "&logtext=" + s;
   Serial << request << endl;
   http.begin(logserver.serverAdress, logserver.serverPort, request);
   http.GET(); // fire and forget...
@@ -291,16 +387,16 @@ void WiFiStart() {
  * ------------------------------------
  * Getting array will be sorted and now get the average over the middle values
  */
-unsigned long median(unsigned long *values, int arraySize) {
+unsigned long median(unsigned long *values, size_t arraySize) {
   unsigned long tmp = 0;     // set to 0, make the compiler happy :-)
   const size_t relVal = 2;   // +- 2 Werte + 1 für die Mittelwertberechnung
 
-  for (size_t i=0; i<arraySize-2; i++) {
-    for (size_t j=arraySize-1; j>i; j--) {
-      if ( values[j] < values[j - 1] ) {
+  for (size_t i=0; i < arraySize-2; i++) {
+    for (size_t j=arraySize-1; j > i; j--) {
+      if ( values[j] < values[j-1] ) {
         tmp = values[j];
-        values[j] = values[j - 1];
-        values[j - 1] = tmp;
+        values[j] = values[j-1];
+        values[j-1] = tmp;
       }
     }
   }
@@ -313,7 +409,7 @@ unsigned long median(unsigned long *values, int arraySize) {
   
   tmp = 0;
   for (size_t i=arraySize/2-relVal; i<arraySize/2+relVal+1; tmp +=values[i++]) {}
-  return tmp/(relVal*2+1);
+  return tmp/(relVal*2+1) * 1000/MEASURING_TIME;
 }
 
 /**
@@ -325,37 +421,50 @@ void intfunc() {
 
 /**
  * Measure soil moisture and build the average of measurement values
+ * struct mySensor {unsigned int sensorId; unsigned int intGPIO; unsigned int powerGPIO;};
  */
-void bodenfeuchtemessung(int gpioPin) {
-  unsigned long speicherArray[MEASURING_INTERVALLS];
+void bodenfeuchtemessung(mySensor &sensordata) {
+  unsigned long dataArray[MEASURING_INTERVALLS];
+  
+  Serial << F("power on GPIO: ") << sensordata.powerGPIO << endl;
+  digitalWrite(sensordata.powerGPIO, HIGH);  // switch sensor power on
+  delay(500);                           // wait for stabilizing sensor
 
-  for (size_t i=0; i<MEASURING_INTERVALLS; i++) {
-    Serial << F("Measuring No.: ") << i << F(" on GPIO-Pin ") << gpioPin << F(" = ");
+  for (size_t i=0; i < MEASURING_INTERVALLS; i++) {
+    Serial << F("SensorID: ") << sensordata.sensorId << F(" - Measuring No.: ") << i << F(" on GPIO-Pin ") << sensordata.intGPIO << F(" = ");
     counter = 0;
     Serial.flush();
 
 #ifdef SERIAL_OUT_ON_MEASURING
     Serial.end();
 #endif
+    digitalWrite(LED_GPIO, HIGH);  // signaling measurent
 
-    attachInterrupt(gpioPin, intfunc, RISING);
+    attachInterrupt(sensordata.intGPIO, intfunc, RISING);
     delay(MEASURING_TIME);
-    detachInterrupt(gpioPin);
-    speicherArray[i] = counter;
+    detachInterrupt(sensordata.intGPIO);
+    dataArray[i] = counter;
 
+    digitalWrite(LED_GPIO, LOW);   // singnaling out
+    
 #ifdef SERIAL_OUT_ON_MEASURING
     Serial.begin(TTY_SPEED);
     while (!Serial) {};  // wait for serial port to connect. Needed for native USB
 #endif
 
     Serial << counter << endl;
+    delay(100);         // wait a small time
   }
 
-  soilMoistAveraged = median(speicherArray, MEASURING_INTERVALLS);
-  Serial << F("average frequence: ") << soilMoistAveraged << endl;
+  Serial << F("power off GPIO: ") << sensordata.powerGPIO << endl;
+  digitalWrite(sensordata.powerGPIO, LOW);   // switch sensor power off
+
+  sensordata.soilMoistAveraged = median(dataArray, MEASURING_INTERVALLS);
+  
+  Serial << F("average frequence: ") << sensordata.soilMoistAveraged << endl;
 
 #ifdef LOGSERVER
-  writeWebLog("[bodenfeuchtemessung:010] Median=" + String(soilMoistAveraged));
+  writeWebLog("[bodenfeuchtemessung:010] Median=" + String(sensordata.soilMoistAveraged));
 #endif
 }
 
@@ -393,67 +502,93 @@ void getMeasuringDistanceFromHttpRequest(String s, const char * tag) {
  * Data transfer to a local data server via http-request (rudimentary REST interface)
  *
  * local test (only for demonstration!):
- *   http://192.168.178.23/datalogger/upd_feuchte.php?espno=1&date=2015-08-13_14-22-01&feuchte=123456789&time=16:00:00'
+ *   http://192.168.178.23/datalogger/upd_feuchte.php?date=2015-08-13_14-22-01&feuchte=123456789&time=16:00:00'
  */
-void saveData2NetServer(serverData aServer, int gpio=0) {
+void saveData2NetServer(serverData aServer, mySensor aSensor) {
   HTTPClient http;
 
   epoch_to_date_time(date, ulSecs2000_timer + millis()/1000); // fresh up the date structure for current time
 
   String request = String(aServer.serverScript) +
-                   "?espno=" + ESPNO +
+                   "?mac=" + macID +
+                   "&sensorid=" + String(aSensor.sensorId) +
+                   "&gpio=" + String(aSensor.intGPIO) +
                    "&date=" + getDatum() +
                    "&time=" + getTime() +
-                   "&feuchte=" + String(soilMoistAveraged) +
-                   "&mac=" + macID +
-                   "&gpio=" + String(gpio);
+                   "&feuchte=" + String(aSensor.soilMoistAveraged);
 
-  Serial << F("Try to get http request: ") << request << endl;
+  Serial << F("Connect and send REST request for server ") << aServer.serverAdress << endl;
+#ifdef DEBUG
+  Serial << F("Request: ") << request << endl;
+#endif
 
   http.begin(aServer.serverAdress, aServer.serverPort, request);
   int httpCode = http.GET();
   if (httpCode) {
     // HTTP header has been send and Server response header has been handled
-    Serial << F("[HTTP] GET... code: ") << httpCode << endl;
+    Serial << F("[HTTP] GET... code: ") << httpCode;
+    String payload = http.getString();
 
     if (httpCode == HTTP_CODE_OK) {
-      Serial << F("[HTTP] GET... successfull") << endl;
+      Serial << F("   ... successfull") << endl;
       // file found at server
-      String payload = http.getString();
 #ifdef DEBUG
       Serial << payload << endl;
 #endif
       getMeasuringDistanceFromHttpRequest(payload, "measuringDistance");
     }
-    else Serial << F("[HTTP] GET... error") << endl;
+    else {
+      Serial << F("   ... error: ") << endl;
+      Serial << payload << endl;
+    }
+    
   }
+  Serial << endl;
 }
 
 /**
  * Send data to a valid ThingsSpeak account
 */
-void saveData2ThingsSpeak(tsData aTS) {
+void saveData2ThingsSpeak() {
   const int maxSendRepeats = 10;
-  const int waitTimeBetweenSend_ms = 2000; // 2 sec.
+  const int waitTimeBetweenSend_ms = 5000; // 5 sec.
+  
+  String request= "/update?api_key=" + thingSpeakServer[0].tsAPIKey; 
+  
+  char buf[20];
+  for (unsigned int sensor=0; sensor < sizeof(sensors)/sizeof(struct mySensor); sensor++) {
+    for (unsigned int tss=0; tss < sizeof(thingSpeakServer)/sizeof(struct tsData); tss++) {
 
-  String request= "/update?api_key=" + aTS.tsAPIKey + "&field" + aTS.tsFieldNo + "=" + String(soilMoistAveraged);
-  Serial << F("Try to send to ThingsSpeak...") << endl << F("Try to get REST request: ") << request << endl;
+      // send only once for field number == sensor id 
+      if (thingSpeakServer[tss].tsFieldNo == sensors[sensor].sensorId) {
+        sprintf(buf, "&field%d=%d", thingSpeakServer[tss].tsFieldNo, sensors[sensor].soilMoistAveraged);
+        request += String(buf);
+      }
+    }
+  }
+  
+//  String request= "/update?api_key=" + aTS.tsAPIKey + "&field" + aTS.tsFieldNo + "=" + String(soilMoistAveraged);
+  
+  Serial << F("Try to send to ThingsSpeak ") << endl;
+#ifdef DEBUG
+  Serial << F("REST request: ") << request << endl;
+#endif
 
   HTTPClient http;
   int sendLoop = 0;
   do {
-    http.begin(aTS.tsServerIP.c_str(), 80, request);
+    http.begin(thingSpeakServer[0].tsServerIP.c_str(), 80, request);
     int httpCode = http.GET();
     if (httpCode) {
       // HTTP header has been send and Server response header has been handled
-      Serial << F("[HTTP] GET... code: ") << httpCode << endl;
+      Serial << F("[HTTP] GET... code: ") << httpCode;
 
-      // don't found at server
+      // don't found at server ?
       if (httpCode != 200) {
-        Serial << F("[HTTP] GET... failed, no connection or no HTTP server\n") << http.getString() << endl;
+        Serial << F("   ... failed, no connection or no HTTP server\n") << http.getString() << endl;
       }
       else {
-        Serial << F("[HTTP] GET... successfull") << endl;
+        Serial << F("   ... successfull") << endl;
         return;
       }
     }
@@ -464,6 +599,7 @@ void saveData2ThingsSpeak(tsData aTS) {
   if (sendLoop >= maxSendRepeats) {
     Serial << F("Can't sent datagram to Thingspeak server, not reachable.") << endl;
   }
+  Serial << endl;
 }
 
 
@@ -480,6 +616,16 @@ void setup() {
   delay(100);          // wait for synchronising
   Serial << getSketchVersion();
 
+#ifdef RELEASE
+  Serial << F("Release version") << endl;
+#endif
+
+#ifdef DEEP_SLEEP_ON
+  Serial << F("deep sleep mode on") << endl;
+#else
+  Serial << F("deep sleep mode off") << endl;
+#endif
+
   // set multiple access points for better mobility
   for (unsigned int i=0; i < sizeof(apList)/sizeof(struct accessPoint); i++) {
     Serial << F("add AP(") << i << F(") : ") << apList[i].SSID << endl;
@@ -491,11 +637,26 @@ void setup() {
   macID = String(MACArray[0], HEX) + String(MACArray[1], HEX) +
           String(MACArray[2], HEX) + String(MACArray[3], HEX);
   macID.toUpperCase();
-  Serial << F("MAC :") << macID << endl;
-  Serial << F("Chip:") << ESP.getChipId() << endl;
+  Serial << F("MAC: ") << macID << F("   ====   ChipId: ") << ESP.getChipId() << endl;
+  
+  // initialise the GPIO pins for all sensors are configured
+  Serial << F("Initialise GPIOs") << endl;
+  for (unsigned int i=0; i < sizeof(sensors)/sizeof(struct mySensor); i++) {
+    pinMode(sensors[i].intGPIO, INPUT_PULLUP);
+    pinMode(sensors[i].powerGPIO, OUTPUT);
+#ifdef DEBUG
+    Serial << i << F(" pwr: ") << sensors[i].powerGPIO << endl;
+    Serial << i << F(" int: ") << sensors[i].intGPIO << endl; 
+#endif
+    digitalWrite(sensors[i].powerGPIO, LOW);
+  }  
 
-  uint32_t free=system_get_free_heap_size();
-  Serial << F("free heap:") << free << F(" byte") << endl;
+  // Signaling LED ready for take of ...
+  pinMode(LED_GPIO, OUTPUT);
+  for (int i= 0; i < 10; i++) {
+    digitalWrite(LED_GPIO, HIGH);   delay(100);
+    digitalWrite(LED_GPIO, LOW);    delay(100);
+  }
 }
 
 /* ------------------------------------
@@ -505,44 +666,36 @@ void loop() {
 #ifndef DEEP_SLEEP_ON
   looptimeStart = millis();
 #endif
+  delay(1000);  // short wait for WiFi
 
   WiFiStart();
-  Serial << endl << F("---BEGIN MEASURMENT---") << endl;
 
-#ifdef INTPIN_0
-  bodenfeuchtemessung(INTPIN_0);
-#ifdef SERVER_1
-  saveData2NetServer(dataServer_1, INTPIN_0);
-#endif
-#ifdef SERVER_2
-  saveData2NetServer(dataServer_2, INTPIN_0);
-#endif
-#ifdef THINGSPEAK_1
-  saveData2ThingsSpeak(thingSpeak_data_1);
-#endif
-#endif
+//  Serial << endl << F("free heap:") << system_get_free_heap_size() << F(" byte") << endl;
+  Serial << F("free heap:") << ESP.getFreeHeap() << F(" byte") << endl;
+  
+  delay(1000);  // short wait for WiFi
 
-#ifdef INTPIN_2
-  bodenfeuchtemessung(INTPIN_2);
-#ifdef SERVER_1
-  saveData2NetServer(dataServer_1, INTPIN_2);
-#endif
-#ifdef SERVER_2
-  saveData2NetServer(dataServer_2, INTPIN_2);
-#endif
-#ifdef THINGSPEAK_2
-  saveData2ThingsSpeak(thingSpeak_data_2);
-#endif
-#endif
-
+  for (unsigned int sensor=0; sensor < sizeof(sensors)/sizeof(struct mySensor); sensor++) {
+    Serial << endl << F("---BEGIN MEASURMENT Sensor No.: ") << sensors[sensor].sensorId << F(" ---") << endl;
+    bodenfeuchtemessung(sensors[sensor]);
+  
+    for (unsigned int server=0; server < sizeof(dataServer)/sizeof(struct serverData); server++) {
+      saveData2NetServer(dataServer[server], sensors[sensor]);
+    }
+  }
+   
+  //  
+  saveData2ThingsSpeak();
+   
+    
   unsigned long looptimeEnde = millis();
   unsigned long looptime = looptimeEnde - looptimeStart;
 
   if (looptime > measuringDistance) {
     Serial << F("[Warning]: loop time bigger than measuring distance time!") << endl;
-    Serial << F("   ==> redefine measuring distance time to 10 * default") << endl;
-    Serial << F("   ==> new measuring distance time is ") << String(10*MEASURING_DISTANCE_DEFAULT/1000) << F(" sec. from now") << endl;
-    measuringDistance = 10 * MEASURING_DISTANCE_DEFAULT;
+    Serial << F("   ==> redefine measuring distance time to 5 * default") << endl;
+    Serial << F("   ==> new measuring distance time is ") << String(5*MEASURING_DISTANCE_DEFAULT/1000) << F(" sec. from now") << endl;
+    measuringDistance = 5 * MEASURING_DISTANCE_DEFAULT;
   }
 
   epoch_to_date_time(date, ulSecs2000_timer + (millis() + measuringDistance - looptime)/1000); // fresh up the date structure for current time
@@ -550,7 +703,7 @@ void loop() {
   Serial << F("measuringDistance (def) = ") << measuringDistance << endl;
   Serial << F("looptime                = ") << looptime << endl;
   Serial << F("measuringDistance (new) = ") << measuringDistance - looptime << endl << endl;
-  Serial << F("Next measure time is now: ") << getDatum() << F(" - ") << getTime() << endl;
+  Serial << F("Next measure time is now: ") << getDatum() << F(" - ") << getTime() << F(" (UTC)") << endl;
 
 #ifdef DEEP_SLEEP_ON
   Serial << F("Going into deep sleep for around ") << ((measuringDistance-looptime)/1000) << F(" sec") << endl;

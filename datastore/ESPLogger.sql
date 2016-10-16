@@ -35,9 +35,7 @@ CREATE TABLE `ESP_Admin` (
 --
 
 DROP TABLE IF EXISTS `ESP_Feuchte`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `ESP_Feuchte` (
+CREATE TABLE IF NOT EXISTS `ESP_Feuchte` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `espno` int(3) unsigned NOT NULL DEFAULT '0',
   `date` date NOT NULL,
@@ -48,14 +46,15 @@ CREATE TABLE `ESP_Feuchte` (
   `nan` smallint(3) NOT NULL DEFAULT '-1' COMMENT 'Anzahl fehlerhafter DTH22 Messungen',
   `espmac` varchar(18) NOT NULL DEFAULT '00:00:00:00:00:00',
   `gpio` varchar(3) NOT NULL DEFAULT '-1',
-  PRIMARY KEY (`id`,`espno`),
-  UNIQUE KEY `id` (`id`),
+  `sensorid` int(4) NOT NULL DEFAULT '-1',
+  PRIMARY KEY (`id`),
   KEY `date` (`date`),
   KEY `espno` (`espno`) USING BTREE,
   KEY `espmac` (`espmac`),
-  KEY `gpio` (`gpio`)
-) ENGINE=InnoDB AUTO_INCREMENT=164769 DEFAULT CHARSET=utf8 COMMENT='utf8_general_ci';
-/*!40101 SET character_set_client = @saved_cs_client */;
+  KEY `gpio` (`gpio`),
+  KEY `sensorid` (`sensorid`),
+  KEY `espmac_2` (`espmac`,`sensorid`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='utf8_general_ci';
 
 --
 -- Table structure for table `logging`

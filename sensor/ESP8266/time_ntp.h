@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------
-NTP & time routines for ESP8266 
+NTP & time routines for ESP8266
     for ESP8266 adapted Arduino IDE
 
 by Stefan Thesen 05/2015 - free for anyone
@@ -28,7 +28,7 @@ typedef struct
 }
 date_time_t;
 
-unsigned long getNTPTimestamp(IPAddress& ipaddr);
+time_t getNTPTimestamp(IPAddress& ipaddr);
 void sendNTPpacket(IPAddress& address);
 unsigned int date_time_to_epoch(date_time_t* date_time);
 void epoch_to_date_time(date_time_t* date_time,unsigned long epoch);

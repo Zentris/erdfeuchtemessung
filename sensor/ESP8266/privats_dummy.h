@@ -2,7 +2,7 @@
 #define ESP_PRIVATS
 
 /* + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +
-   
+
    === README ===
 
 [german]
@@ -21,17 +21,17 @@
    --- Wifi- access data
    ---------------------------------------------
    It can defined more than one (unlimited!) access point for better mobility:
-   
+
    Example:
-   struct accessPoint apList[] = { (accessPoint) { "fritzbox",  "1234567890" }, 
-                                   (accessPoint) { "bluelan",   "myHomeIsMyCastle" } 
-                                   (accessPoint) { "firepoint", "hotIceWater" } 
+   struct accessPoint apList[] = { (accessPoint) { "fritzbox",  "1234567890" },
+                                   (accessPoint) { "bluelan",   "myHomeIsMyCastle" }
+                                   (accessPoint) { "firepoint", "hotIceWater" }
                                  };
-*/ 
-struct accessPoint apList[] = { (accessPoint) {"<your first AP name>",  "<pw of your first AP>"} 
-                               ,(accessPoint) {"<your second AP name>", "<pw of your second AP>"} 
-//                             ,(accessPoint) {"<your next AP name>",   "<pw of your next AP>"} 
-                              };
+*/
+accessPoint apList[] = { (accessPoint) {"<your first AP name>",  "<pw of your first AP>"}
+                        ,(accessPoint) {"<your second AP name>", "<pw of your second AP>"}
+//                        ,(accessPoint) {"<your next AP name>",   "<pw of your next AP>"}
+                       };
 
 
 // ---------------------------------------------
@@ -40,10 +40,19 @@ struct accessPoint apList[] = { (accessPoint) {"<your first AP name>",  "<pw of 
 // Example: struct serverData dataServer_1 = { "192.168.1.14", 80, "/homecontrol/upd_feuchte.php" };
 //          struct serverData dataServer_2 = { "soil.moisture.net", 8080, "/upd_feuchte.php" };
 //
-struct serverData dataServer[] = { (serverData) {"<1. Server_ip-or_hostname>", <port>, "<server script with path>"}
-                                  ,(serverData) {"<2. Server_ip-or_hostname>", <port>, "<server script with path>"}
-//                                ... 
-                                 };
+serverData dataServer[] = { (serverData) {"<1. Server_ip-or_hostname>", <port>, "<server script with path>"}
+//                           ,(serverData) {"<2. Server_ip-or_hostname>", <port>, "<server script with path>"}
+                           ...
+                          };
+
+// ---------------------------------------------
+// --- additional data sources ---
+// ---------------------------------------------
+// struct serverData {const char* connectionString; unsigned int sensorId; unsigned int tsFieldNo;};
+// ---------------------------------------------
+collectDataSet addDataSources[] = { (collectDataSet) {"http://192.168.178.152/weigth", 2, 3, ""} // Weight "Einblatt"
+                                   ,(collectDataSet) {"http://192.168.178.152/temp",   2, 4, ""} // Temperature HX711
+                              };
 
 
 // ---------------------------------------------
@@ -54,10 +63,10 @@ struct serverData dataServer[] = { (serverData) {"<1. Server_ip-or_hostname>", <
 // tsAPIKey   = individual API key for our channel
 // tsFieldNo  = Number of field in our channel where the data will be shown
 // ---------------------------------------------
-struct tsData thingSpeakServer[] = { (tsData) {"api.thingspeak.com", "184.106.153.149", "<our API key>", "<our 1. field number>"}
-                                    ,(tsData) {"api.thingspeak.com", "184.106.153.149", "<our API key>", "<our 2. field number>"}
-//                                  ...                                    
-                                   };
+tsData thingSpeakServer[] = { (tsData) {"api.thingspeak.com", "184.106.153.149", "<our API key>", "<our 1. field number>"}
+                             ,(tsData) {"api.thingspeak.com", "184.106.153.149", "<our API key>", "<our 2. field number>"}
+//                           ...
+                            };
 
 
 // ---------------------------------------------

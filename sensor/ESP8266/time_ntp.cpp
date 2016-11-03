@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------
-NTP & time routines for ESP8266 
+NTP & time routines for ESP8266
     for ESP8266 adapted Arduino IDE
 
 by Stefan Thesen 05/2015 - free for anyone
@@ -9,7 +9,7 @@ code for time conversion based on http://stackoverflow.com/
 11/2015: repeat ntp requests for up to 10 times
 
 Patch:
-  29.07.16: (RW): epoch type changed to long in functions 
+  29.07.16: (RW): epoch type changed to long in functions
                   epoch_to_date_time()
                   epoch_to_string()
 -----------------------------------------------------------*/
@@ -19,7 +19,6 @@ Patch:
 #include "time_ntp.h"
 
 // NTP specifics
-//IPAddress timeServer(192, 168, 178, 1); // Fritzbox
 IPAddress timeServer(129, 6, 15, 28); // time.nist.gov NTP server
 
 WiFiUDP udp;  // A UDP instance to let us send and receive packets over UDP
@@ -49,12 +48,12 @@ unsigned int date_time_to_epoch(date_time_t* date_time)
 }
 
 
-unsigned long getNTPTimestamp(IPAddress& ipaddr)
+time_t getNTPTimestamp(IPAddress& ipaddr)
 {
-  unsigned long ulSecs2000;
+  unsigned long ulSecs2000 = 0;
 
   timeServer = ipaddr;
-  
+
   udp.begin(ntpPort);
   int cb, count=0;
   do {
@@ -65,25 +64,24 @@ unsigned long getNTPTimestamp(IPAddress& ipaddr)
   } while (!cb || count>10);
 
   if (!cb)  {
-    Serial.println("Timeserver not accessible! - No RTC support!"); 
-    ulSecs2000=0;
+    Serial.println("Timeserver not accessible! - No RTC support!");
   }
   else {
     Serial.print("packet received, length=");
     Serial.println(cb);
     udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
-    
-    //the timestamp starts at byte 40 of the received packet and is four bytes,
+
+    // the timestamp starts at byte 40 of the received packet and is four bytes,
     // or two words, long. First, esxtract the two words:
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
     unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-    
+
     // combine the four bytes (two words) into a long integer
     // this is NTP time (seconds since Jan 1 1900):
     ulSecs2000  = highWord << 16 | lowWord;
     ulSecs2000 -= 2208988800UL; // go from 1900 to 1970
     ulSecs2000 -= 946684800UL; // go from 1970 to 2000
-  }    
+  }
   return(ulSecs2000);
 }
 
@@ -100,7 +98,7 @@ void sendNTPpacket(IPAddress& address)
   packetBuffer[1] = 0;     // Stratum, or type of clock
   packetBuffer[2] = 6;     // Polling Interval
   packetBuffer[3] = 0xEC;  // Peer Clock Precision
-  
+
   // 8 bytes of zero for Root Delay & Root Dispersion
   packetBuffer[12]  = 49;
   packetBuffer[13]  = 0x4E;

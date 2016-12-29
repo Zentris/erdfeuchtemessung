@@ -7,12 +7,12 @@
 
 [german]
 1. Kopiere das File 'privats_dummy.h' nach 'privats.h'
-2. Passe das File 'privats.h' an, (Zugriffsdaten (Platzhalter:<***>)  befüllen und Funktionalität zuschalten).
+2. Passe das File 'privats.h' an, (Zugriffsdaten (Platzhalter:<***>)  befüllen).
 3. Speichern und compilieren
 
 [english]
 1. Copy the file 'privats_dummy.h' to 'privats.h' in the same directory.
-2. Change the content of the File 'privates.h' (fill access data (placeholder: <***>), uncomment the #define lines if you need the functionality).
+2. Change the content of the File 'privates.h' (fill access data (placeholder: <***>))
 3. Save and compile
 
   + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + */
@@ -48,7 +48,7 @@ serverData dataServer[] = { (serverData) {"<1. Server_ip-or_hostname>", <port>, 
 // ---------------------------------------------
 // --- additional data sources ---
 // ---------------------------------------------
-// struct serverData {const char* connectionString; unsigned int sensorId; unsigned int tsFieldNo;};
+// struct collectDataSet {const char* connectionString; unsigned int sensorId; unsigned int tsFieldNo; String buffer};
 // ---------------------------------------------
 collectDataSet addDataSources[] = { (collectDataSet) {"http://192.168.178.152/weigth", 2, 3, ""} // Weight "Einblatt"
                                    ,(collectDataSet) {"http://192.168.178.152/temp",   2, 4, ""} // Temperature HX711
@@ -72,7 +72,7 @@ tsData thingSpeakServer[] = { (tsData) {"api.thingspeak.com", "184.106.153.149",
 // ---------------------------------------------
 // my sensor GPIO definition (must be adapt on your own hardeware configuration !
 // ---------------------------------------------
-// struct mySensor { unsigned int sensorId;            // sensor id 
+// struct mySensor { unsigned int sensorId;            // sensor id
 //                   unsigned int intGPIO;             // frequence signal line
 //                   unsigned int powerGPIO;           // power line (in case of power off between mesurements)
 //                   unsigned long soilMoistAveraged;  // internal average value, set herer to 0

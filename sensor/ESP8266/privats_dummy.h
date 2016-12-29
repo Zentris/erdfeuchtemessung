@@ -70,6 +70,21 @@ tsData thingSpeakServer[] = { (tsData) {"api.thingspeak.com", "184.106.153.149",
 
 
 // ---------------------------------------------
+// my sensor GPIO definition (must be adapt on your own hardeware configuration !
+// ---------------------------------------------
+// struct mySensor { unsigned int sensorId;            // sensor id 
+//                   unsigned int intGPIO;             // frequence signal line
+//                   unsigned int powerGPIO;           // power line (in case of power off between mesurements)
+//                   unsigned long soilMoistAveraged;  // internal average value, set herer to 0
+//                 };
+// here example data only (i have 2 sensors)
+// ---------------------------------------------
+mySensor sensors[] { (mySensor) { 1, 12, 14, 0 } // my Birkenfeige (Ficus benjamina)
+                    ,(mySensor) { 2,  5,  4, 0 } // my Einblatt (Spathiphyllum)
+};
+
+
+// ---------------------------------------------
 // --- Logserver (if needed) ---
 // ---------------------------------------------
 // (remove the comment of following line for activate)

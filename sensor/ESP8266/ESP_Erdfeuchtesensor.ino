@@ -44,6 +44,16 @@
     - translate all comments to english
 
   @Releases: Feature
+    2.3.0 :
+    - Add temperature and also weight into the sending protokoll to the 
+      data server for sensors which has additional data.
+      In opposite to the Thingspeak protokoll the data will be only send if
+      the additional server data sends (!).
+    - Add "WiFi.persistent(false)" into the initialise sequence for suppress 
+      storing of account data into the eeprom for reducing writes to them.
+      For more info see also: 
+      (https://github.com/esp8266/Arduino/blob/4897e0006b5b0123a2fa31f67b14a3fff65ce561/doc/esp8266wifi/generic-class.md#persistent)
+      
     2.2.0 :
     - Storing the weight and temperature data into the EEPROM:
       In case of disconnect from weighbridge the stored values will be
@@ -114,7 +124,7 @@
 // ------------------------------------
 
 #define PRG_NAME_SHORT  "MSM-ESP8266"
-#define PRG_VERSION     "2.2.0"
+#define PRG_VERSION     "2.3.0"
 
 /* -------------------------
  * First include section
@@ -144,6 +154,7 @@ extern "C" {
 //#define ESP8266_01       // recomment if your target device a ESP8266-01
 
 #define RELEASE          // switch on release mode.. (no debug mode, small foortprint)
+
 #define DEBUG            // debug mode on/off
 //#define NOSEND           // if defined no data will be send to externals
 
@@ -695,7 +706,7 @@ void getMeasuringDistanceFromHttpRequest(String s, const char * tag) {
  * Data transfer to a local data server via http-request (rudimentary REST interface)
  *
  * local test (only for demonstration!):
- *   http://192.168.178.23/datalogger/upd_feuchte.php?date=2015-08-13_14-22-01&feuchte=123456789&time=16:00:00'
+ *   http://192.168.178.23/datalogger/upd_feuchte.php?date=2015-08-13&feuchte=123456789&time=16:00:00'
  */
 void saveData2NetServer(serverData aServer, mySensor aSensor) {
   HTTPClient http;
@@ -710,6 +721,21 @@ void saveData2NetServer(serverData aServer, mySensor aSensor) {
                    "&time=" + getTime() +
                    "&feuchte=" + String(aSensor.soilMoistAveraged);
 
+    for (unsigned int addIdx=0; addIdx < sizeof(addDataSources)/sizeof(struct collectDataSet); addIdx++) {
+      if (aSensor.sensorId == addDataSources[addIdx].sensorId) {
+        String addString = getHttpRequest(addDataSources[addIdx].connectionString);
+        if ( 0 < addString.length()) {
+          addDataSources[addIdx].buffer = addString;
+          if (strstr(addDataSources[addIdx].connectionString, "weig") != NULL) {
+            request += "&topfgewicht=" + addString;
+          }
+          else if (strstr(addDataSources[addIdx].connectionString, "temp") != NULL) {
+            request += "&temperatur=" + addString;           
+          }
+        }
+      }
+    }
+
   Serial << F("[saveData2NetServer] Connect and send REST request for server ") << aServer.serverAdress << endl;
 #ifdef DEBUG
   Serial << F("[saveData2NetServer] Request: ") << request << endl;
@@ -717,6 +743,7 @@ void saveData2NetServer(serverData aServer, mySensor aSensor) {
 
   http.begin(aServer.serverAdress, aServer.serverPort, request);
   int httpCode = http.GET();
+
   if (httpCode) {
     // HTTP header has been send and Server response header has been handled
     Serial << F("[saveData2NetServer] HTTP: GET... code: ") << httpCode;
@@ -737,6 +764,7 @@ void saveData2NetServer(serverData aServer, mySensor aSensor) {
   }
   Serial << endl;
 }
+
 
 /**
  * Send data to a valid ThingsSpeak account
@@ -899,6 +927,8 @@ void setup() {
 #endif
 
   // set multiple access points for better mobility
+  WiFi.persistent(false);   // since 2.3.0
+  WiFi.mode(WIFI_STA);      // since 2.3.0
   for (unsigned int i=0; i < sizeof(apList)/sizeof(struct accessPoint); i++) {
     Serial << F("add AP(") << i << F(") : ") << apList[i].SSID << endl;
     WiFiMulti.addAP(apList[i].SSID, apList[i].PASSWORD);
@@ -909,6 +939,7 @@ void setup() {
   macID = String(MACArray[0], HEX) + String(MACArray[1], HEX) +
           String(MACArray[2], HEX) + String(MACArray[3], HEX) +
           String(MACArray[4], HEX) + String(MACArray[5], HEX);
+          
   macID.toUpperCase();
   Serial << F("MAC: ") << macID << F("   ====   ChipId: ") << ESP.getChipId() << endl;
 

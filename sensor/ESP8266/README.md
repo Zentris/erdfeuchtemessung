@@ -1,4 +1,4 @@
-=====Readme for using the sketch and others
+## Readme for using the sketch and others
 
 [german]
 
@@ -6,7 +6,7 @@
 2. Passe das File 'privats.h' an, (Zugriffsdaten befüllen).
 3. Speichern und compilieren
 
-## deep sleep ##
+### deep sleep ##
 Die deep-sleep Funktionalität kann nur angewendet werden, wenn am ESP8266
 eine Brücke (Drahtverbindung) zwischen dem Pin 16 (GPIO16) und dem Reset-Pin
 (RST) angebracht ist.
@@ -22,7 +22,7 @@ Chip kontaktiert werden)
 2. Change the content of the File 'privates.h' (fill access data).
 3. Save and compile
 
-## deep sleep ##
+### deep sleep ##
 The deep sleep functionality can used only with the ESP8266 if a wire
 between the GPIO16 and the reset pin (RST).
 

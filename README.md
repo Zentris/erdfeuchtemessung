@@ -1,7 +1,7 @@
 ## Erdfeuchtemessung
 
 #### Hinweis - Wichtig!
-Dieses Repository ist im Aufbau und stellt derzeit noch keine fertige Lösung bereit!
+Dieses Repository ist in Entwicklung und stellt derzeit noch keine fertige Lösung bereit!
 Für mögliche Fehler und daraus ggf. entstandene Schäden beim Anwender wird keinerlei Haftung übernommen.
 
 Für tiefergreifende Infos ==> **WIKI dieses Repositorys** ansehen.
@@ -24,9 +24,6 @@ Die ermittelte Erdfeuchte kann dann für weitergehende Aufgaben (z.B. Bewässeru
 * Die Daten können nun aus der Datenbank beliebig ausgelesen und weiterverarbeitet werden (z.B. Giessautomatik).
 * Die Steuerung der Messintervalle im ESP8266 erfolgt über die REST-Schnittstelle. 
 * Das Konzept mit einem ESP8266 erlaubt weitere Sensoren in Pflanzennähe (z.B. Luft/Bodentemperatur, Sonnenscheindauer und -intensität usw.).
-
-#### Mein Blog
-* http://www.n8chteule.de/zentris-blog/
 
 #### Wo kann ich mehr erfahren?
 * Im Wiki (https://github.com/Zentris/erdfeuchtemessung/wiki) zu diesem Projekt sind weitere Informationen abrufbar.

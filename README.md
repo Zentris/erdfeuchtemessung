@@ -1,3 +1,11 @@
+# Wichtiger Hinweis 
+Das Projekt liegt seit ca. 2017 "auf Eis", d.h. es wird von mir nicht weiter entwickelt.
+Grund ist, dass ich inzwischen zu einem anderen Sensortyp gewechselt bin.
+Den Code lass ich jedoch hier stehen, als Anschaung. Ich bitte jedoch das Alter bzgl. der Aktualität zu beachten
+
+---
+
+
 ## Erdfeuchtemessung
 
 #### Hinweis - Wichtig!

@@ -32,8 +32,5 @@ Die ermittelte Erdfeuchte kann dann für weitergehende Aufgaben (z.B. Bewässeru
 * https://www.mikrocontroller.net/topic/169824#1623456
 * https://wwwvs.cs.hs-rm.de/vs-wiki/index.php/Internet_der_Dinge_WS2015/SmartPlant#Messmethode_2:_Kapazitiv
  
-#### Auch interessant:
-* http://www.dietmar-weisser.de/elektronik-projekte/analogtechnik/sensoren/giessindikator.html 
-
 #### Online Shop(s):
 * http://www.ramser-elektro.at/shop/bausaetze-und-platinen/giess-o-mat-sensor-bausatz/
